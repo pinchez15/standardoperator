@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 import { ensureSupabaseUser } from "@/lib/supabase/users";
+import type { Database, Json } from "@/lib/database.types";
 
 export async function GET() {
   const { userId } = await auth();
@@ -91,14 +92,21 @@ export async function POST(request: Request) {
       );
     }
 
+    const defaultDocument: Json = {
+      type: "doc",
+      content: [] as Json[],
+    };
+
+    const newSop: Database["public"]["Tables"]["sops"]["Insert"] = {
+      title: payload.title?.trim() || "Untitled SOP",
+      folder_id: payload.folderId ?? null,
+      user_id: profile.id,
+      content: defaultDocument,
+    };
+
     const { data, error: insertError } = await supabase
       .from("sops")
-      .insert({
-        title: payload.title?.trim() || "Untitled SOP",
-        folder_id: payload.folderId ?? null,
-        user_id: profile.id,
-        content: { type: "doc", content: [] },
-      })
+      .insert(newSop)
       .select("id, title, folder_id, status, updated_at")
       .single();
 
