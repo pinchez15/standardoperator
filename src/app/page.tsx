@@ -12,7 +12,7 @@ const SUPABASE_READY =
   Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function HomePage() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");
