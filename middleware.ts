@@ -10,7 +10,7 @@ export default clerkMiddleware(async (auth, req) => {
   const session = await auth();
 
   if (!isPublicRoute(req)) {
-    session.protect();
+    await session.protect();
   }
 });
 
