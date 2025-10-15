@@ -4,6 +4,17 @@ import { getServiceSupabaseClient } from "@/lib/supabase/service";
 import { ensureSupabaseUser } from "@/lib/supabase/users";
 import type { Database, Json } from "@/lib/database.types";
 
+type SopRow = Database["public"]["Tables"]["sops"]["Row"];
+type SopSummaryRow = Pick<
+  SopRow,
+  "id" | "title" | "folder_id" | "status" | "updated_at"
+>;
+type FolderSummaryRow = Pick<
+  Database["public"]["Tables"]["sop_folders"]["Row"],
+  "id" | "name"
+>;
+type SopInsert = Database["public"]["Tables"]["sops"]["Insert"];
+
 export async function GET() {
   const { userId } = await auth();
 
@@ -38,8 +49,8 @@ export async function GET() {
     if (foldersResult.error) throw foldersResult.error;
 
     return NextResponse.json({
-      sops: sopsResult.data,
-      folders: foldersResult.data,
+      sops: (sopsResult.data ?? []) as SopSummaryRow[],
+      folders: (foldersResult.data ?? []) as FolderSummaryRow[],
     });
   } catch (error) {
     console.error("[SOPS_GET]", error);
@@ -74,7 +85,7 @@ export async function POST(request: Request) {
 
     const { count: sopCount, error: countError } = await supabase
       .from("sops")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("user_id", profile.id);
 
     if (countError) {
@@ -97,7 +108,7 @@ export async function POST(request: Request) {
       content: [] as Json[],
     };
 
-    const newSop: Database["public"]["Tables"]["sops"]["Insert"] = {
+    const newSop: SopInsert = {
       title: payload.title?.trim() || "Untitled SOP",
       folder_id: payload.folderId ?? null,
       user_id: profile.id,
@@ -106,7 +117,7 @@ export async function POST(request: Request) {
 
     const { data, error: insertError } = await supabase
       .from("sops")
-      .insert(newSop)
+      .insert<SopInsert>(newSop)
       .select("id, title, folder_id, status, updated_at")
       .single();
 
@@ -114,7 +125,7 @@ export async function POST(request: Request) {
       throw insertError;
     }
 
-    return NextResponse.json({ sop: data }, { status: 201 });
+    return NextResponse.json({ sop: data as SopSummaryRow }, { status: 201 });
   } catch (error) {
     console.error("[SOPS_POST]", error);
     return NextResponse.json(

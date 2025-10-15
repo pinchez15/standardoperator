@@ -1,10 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { createBrowserClient, type SupabaseClient } from "@supabase/ssr";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
-export function createSupabaseBrowserClient(): SupabaseClient<Database> {
+type PublicDatabase = Pick<Database, "public">;
+type BrowserClient = SupabaseClient<PublicDatabase, "public">;
+
+export function createSupabaseBrowserClient(): BrowserClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -14,9 +18,15 @@ export function createSupabaseBrowserClient(): SupabaseClient<Database> {
     );
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient<PublicDatabase, "public">(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      db: { schema: "public" },
+    }
+  );
 }
 
-export function useSupabaseBrowser(): SupabaseClient<Database> {
+export function useSupabaseBrowser(): BrowserClient {
   return useMemo(() => createSupabaseBrowserClient(), []);
 }

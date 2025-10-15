@@ -12,20 +12,28 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export function createSupabaseServerClient(): SupabaseClient<Database> {
-  const cookieStore = cookies();
+type PublicDatabase = Pick<Database, "public">;
+type ServerClient = SupabaseClient<PublicDatabase, "public">;
 
-  return createServerClient<Database>(supabaseUrl ?? "", supabaseAnonKey ?? "", {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
+export async function createSupabaseServerClient(): Promise<ServerClient> {
+  const cookieStore = await cookies();
+
+  return createServerClient<PublicDatabase, "public">(
+    supabaseUrl ?? "",
+    supabaseAnonKey ?? "",
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: Record<string, unknown>) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: Record<string, unknown>) {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
+        },
       },
-      set(name: string, value: string, options: Record<string, unknown>) {
-        cookieStore.set({ name, value, ...options });
-      },
-      remove(name: string, options: Record<string, unknown>) {
-        cookieStore.set({ name, value: "", ...options, maxAge: 0 });
-      },
-    },
-  });
+      db: { schema: "public" },
+    }
+  );
 }

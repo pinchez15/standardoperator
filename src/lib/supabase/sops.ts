@@ -1,5 +1,17 @@
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
-export async function getSopSummariesForUser(userId: string) {
+import type { Database } from "@/lib/database.types";
+
+type SopRow = Database["public"]["Tables"]["sops"]["Row"];
+type SopSummaryRow = Pick<
+  SopRow,
+  "id" | "title" | "folder_id" | "status" | "updated_at"
+>;
+type FolderRow = Database["public"]["Tables"]["sop_folders"]["Row"];
+type FolderSummaryRow = Pick<FolderRow, "id" | "name">;
+
+export async function getSopSummariesForUser(
+  userId: string
+): Promise<SopSummaryRow[]> {
   const client = getServiceSupabaseClient();
   const { data, error } = await client
     .from("sops")
@@ -11,10 +23,12 @@ export async function getSopSummariesForUser(userId: string) {
     throw error;
   }
 
-  return data;
+  return (data ?? []) as SopSummaryRow[];
 }
 
-export async function getFoldersForUser(userId: string) {
+export async function getFoldersForUser(
+  userId: string
+): Promise<FolderSummaryRow[]> {
   const client = getServiceSupabaseClient();
   const { data, error } = await client
     .from("sop_folders")
@@ -26,5 +40,5 @@ export async function getFoldersForUser(userId: string) {
     throw error;
   }
 
-  return data;
+  return (data ?? []) as FolderSummaryRow[];
 }

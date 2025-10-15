@@ -43,6 +43,7 @@ export interface Database {
           updated_at?: string;
           user_id?: string;
         };
+        Relationships: [];
       };
       sop_exports: {
         Row: {
@@ -72,6 +73,7 @@ export interface Database {
           storage_path?: string;
           user_id?: string;
         };
+        Relationships: [];
       };
       sop_folders: {
         Row: {
@@ -92,6 +94,7 @@ export interface Database {
           name?: string;
           user_id?: string;
         };
+        Relationships: [];
       };
       sops: {
         Row: {
@@ -127,6 +130,7 @@ export interface Database {
           user_id?: string;
           version?: number;
         };
+        Relationships: [];
       };
       users: {
         Row: {
@@ -149,6 +153,7 @@ export interface Database {
           sop_quota?: number;
           updated_at?: string;
         };
+        Relationships: [];
         Update: {
           clerk_user_id?: string;
           created_at?: string;
@@ -192,6 +197,7 @@ export interface Database {
         created_at?: string;
         updated_at?: string;
       };
+      Relationships: [];
     };
     Objects: {
       Row: {
@@ -227,6 +233,7 @@ export interface Database {
         path_tokens?: string[] | null;
         updated_at?: string | null;
       };
+      Relationships: [];
     };
     Functions: {
       can_insert_object: {

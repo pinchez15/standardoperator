@@ -3,6 +3,8 @@ import { getServiceSupabaseClient } from "@/lib/supabase/service";
 import type { Database } from "@/lib/database.types";
 
 type UserRow = Database["public"]["Tables"]["users"]["Row"];
+type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
+type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 
 export async function ensureSupabaseUser(
   clerkUser: Pick<User, "id" | "emailAddresses" | "firstName" | "lastName"> & {
@@ -34,41 +36,47 @@ export async function ensureSupabaseUser(
     throw selectError;
   }
 
-  if (existing) {
-    if (existing.email !== email || existing.full_name !== fullName) {
+  const existingUser = existing as UserRow | null;
+
+  if (existingUser) {
+    if (existingUser.email !== email || existingUser.full_name !== fullName) {
+      const updatePayload: UserUpdate = {
+        email,
+        full_name: fullName || null,
+      };
+
       const { data: updated, error: updateError } = await client
         .from("users")
-        .update({
-          email,
-          full_name: fullName || null,
-        })
-        .eq("id", existing.id)
-        .select()
+        .update<UserUpdate>(updatePayload)
+        .eq("id", existingUser.id)
+        .select("*")
         .single();
 
       if (updateError) {
         throw updateError;
       }
 
-      return updated;
+      return updated as UserRow;
     }
 
-    return existing;
+    return existingUser;
   }
+
+  const insertPayload: UserInsert = {
+    clerk_user_id: clerkUser.id,
+    email,
+    full_name: fullName || null,
+  };
 
   const { data: inserted, error: insertError } = await client
     .from("users")
-    .insert({
-      clerk_user_id: clerkUser.id,
-      email,
-      full_name: fullName || null,
-    })
-    .select()
+    .insert<UserInsert>(insertPayload)
+    .select("*")
     .single();
 
   if (insertError) {
     throw insertError;
   }
 
-  return inserted;
+  return inserted as UserRow;
 }
