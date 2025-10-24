@@ -18,6 +18,8 @@ export function AppShell({ sops, folders }: AppShellProps) {
     sops[0]?.id ?? null
   );
   const [isCreating, setIsCreating] = useState(false);
+  const [sopContent, setSopContent] = useState<Record<string, string>>({});
+  const [loadingContent, setLoadingContent] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setItems(sops);
@@ -28,6 +30,31 @@ export function AppShell({ sops, folders }: AppShellProps) {
       setSelectedId(sops[0]?.id ?? null);
     }
   }, [sops, selectedId]);
+
+  // Load SOP content when selected
+  useEffect(() => {
+    if (selectedId && !sopContent[selectedId] && !loadingContent[selectedId]) {
+      loadSopContent(selectedId);
+    }
+  }, [selectedId, sopContent, loadingContent]);
+
+  const loadSopContent = async (sopId: string) => {
+    setLoadingContent(prev => ({ ...prev, [sopId]: true }));
+    try {
+      const response = await fetch(`/api/sops/${sopId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSopContent(prev => ({
+          ...prev,
+          [sopId]: data.sop.content?.html || "<p class='text-muted-foreground'>Use the AI agent or start typing to draft your SOP.</p>"
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to load SOP content:", error);
+    } finally {
+      setLoadingContent(prev => ({ ...prev, [sopId]: false }));
+    }
+  };
 
   const activeSop = useMemo(
     () => items.find((sop) => sop.id === selectedId) ?? items[0] ?? null,
@@ -77,6 +104,88 @@ export function AppShell({ sops, folders }: AppShellProps) {
     }
   };
 
+  const handleContentChange = async (content: string) => {
+    if (!selectedId) return;
+    
+    setSopContent(prev => ({
+      ...prev,
+      [selectedId]: content
+    }));
+
+    // Save to backend
+    try {
+      await fetch("/api/sops", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: selectedId,
+          content: content,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save content:", error);
+    }
+  };
+
+  const handleTitleChange = async (title: string) => {
+    if (!selectedId) return;
+    
+    setItems(prev => prev.map(sop => 
+      sop.id === selectedId ? { ...sop, title } : sop
+    ));
+
+    // Save to backend
+    try {
+      await fetch("/api/sops", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: selectedId,
+          title: title,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to save title:", error);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    const name = prompt("Enter folder name:");
+    if (!name?.trim()) return;
+
+    try {
+      const response = await fetch("/api/folders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error ?? "Failed to create folder");
+      }
+
+      const { folder } = (await response.json()) as {
+        folder: {
+          id: string;
+          name: string;
+        };
+      };
+
+      // Refresh the page to show the new folder
+      window.location.reload();
+    } catch (error) {
+      console.error("[CREATE_FOLDER]", error);
+      alert("Failed to create folder. Please try again.");
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
       <LibrarySidebar
@@ -86,6 +195,9 @@ export function AppShell({ sops, folders }: AppShellProps) {
         onSelectSop={setSelectedId}
         onCreateSop={() => {
           void handleCreateSop();
+        }}
+        onCreateFolder={() => {
+          void handleCreateFolder();
         }}
       />
       <div className="flex min-w-0 flex-1 flex-col">
@@ -103,7 +215,9 @@ export function AppShell({ sops, folders }: AppShellProps) {
           {activeSop ? (
             <EditorCanvas
               title={activeSop.title}
-              content="<p>Start collaborating on your SOP content here.</p>"
+              content={sopContent[activeSop.id]}
+              onContentChange={handleContentChange}
+              onTitleChange={handleTitleChange}
             />
           ) : (
             <div className="flex flex-1 items-center justify-center">
@@ -112,7 +226,16 @@ export function AppShell({ sops, folders }: AppShellProps) {
               </p>
             </div>
           )}
-          <AgentPanel />
+          <AgentPanel 
+            onSendMessage={async (message) => {
+              console.log("Chat message:", message);
+              // TODO: Implement AI chat functionality
+            }}
+            onUpload={(files) => {
+              console.log("Files uploaded:", files);
+              // TODO: Implement file upload functionality
+            }}
+          />
         </div>
       </div>
     </div>

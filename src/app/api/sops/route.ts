@@ -134,3 +134,78 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function PUT(request: Request) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const clerkUser = await currentUser();
+
+  if (!clerkUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const payload = (await request.json().catch(() => ({}))) as {
+      id: string;
+      title?: string;
+      content?: string;
+    };
+
+    if (!payload.id) {
+      return NextResponse.json(
+        { error: "SOP ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const profile = await ensureSupabaseUser(clerkUser);
+    const supabase = getServiceSupabaseClient();
+
+    // Verify the SOP belongs to the user
+    const { data: existingSop, error: fetchError } = await supabase
+      .from("sops")
+      .select("id, user_id")
+      .eq("id", payload.id)
+      .eq("user_id", profile.id)
+      .single();
+
+    if (fetchError || !existingSop) {
+      return NextResponse.json(
+        { error: "SOP not found" },
+        { status: 404 }
+      );
+    }
+
+    const updateData: any = {};
+    if (payload.title !== undefined) {
+      updateData.title = payload.title.trim();
+    }
+    if (payload.content !== undefined) {
+      updateData.content = { html: payload.content };
+    }
+
+    const { data, error: updateError } = await supabase
+      .from("sops")
+      .update(updateData)
+      .eq("id", payload.id)
+      .eq("user_id", profile.id)
+      .select("id, title, folder_id, status, updated_at")
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return NextResponse.json({ sop: data as SopSummaryRow });
+  } catch (error) {
+    console.error("[SOPS_PUT]", error);
+    return NextResponse.json(
+      { error: "Failed to update SOP" },
+      { status: 500 }
+    );
+  }
+}

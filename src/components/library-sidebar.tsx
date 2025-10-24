@@ -13,6 +13,7 @@ interface LibrarySidebarProps {
   selectedSopId?: string | null;
   onSelectSop?: (sopId: string) => void;
   onCreateSop?: () => void;
+  onCreateFolder?: () => void;
 }
 
 export function LibrarySidebar({
@@ -21,6 +22,7 @@ export function LibrarySidebar({
   selectedSopId,
   onSelectSop,
   onCreateSop,
+  onCreateFolder,
 }: LibrarySidebarProps) {
   const grouped = new Map<string | null, SopSummary[]>();
   for (const sop of sops) {
@@ -51,10 +53,20 @@ export function LibrarySidebar({
       <ScrollArea className="flex-1 px-2 py-4">
         <div className="space-y-4 pr-2">
           <div>
-            <p className="mb-2 flex items-center gap-2 px-2 text-xs font-semibold uppercase text-muted-foreground">
-              <FolderIcon className="h-3.5 w-3.5" />
-              Folders
-            </p>
+            <div className="mb-2 flex items-center justify-between px-2">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
+                <FolderIcon className="h-3.5 w-3.5" />
+                Folders
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-xs"
+                onClick={onCreateFolder}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
             <nav className="space-y-1">
               {folders.length === 0 ? (
                 <p className="px-2 text-sm text-muted-foreground">
