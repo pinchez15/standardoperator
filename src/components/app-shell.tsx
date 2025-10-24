@@ -171,13 +171,6 @@ export function AppShell({ sops, folders }: AppShellProps) {
         throw new Error(error.error ?? "Failed to create folder");
       }
 
-      const { folder } = (await response.json()) as {
-        folder: {
-          id: string;
-          name: string;
-        };
-      };
-
       // Refresh the page to show the new folder
       window.location.reload();
     } catch (error) {

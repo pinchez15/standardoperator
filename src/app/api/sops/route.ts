@@ -180,7 +180,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const updateData: any = {};
+    const updateData: Partial<Database["public"]["Tables"]["sops"]["Update"]> = {};
     if (payload.title !== undefined) {
       updateData.title = payload.title.trim();
     }

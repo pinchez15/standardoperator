@@ -8,8 +8,9 @@ type SopRow = Database["public"]["Tables"]["sops"]["Row"];
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const { userId } = await auth();
 
   if (!userId) {
@@ -29,7 +30,7 @@ export async function GET(
     const { data, error } = await supabase
       .from("sops")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("user_id", profile.id)
       .single();
 
